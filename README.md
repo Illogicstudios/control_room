@@ -1,6 +1,6 @@
-# Template Tool
+# Control Room
 
-> Template is a tool to ...
+> Control Room is a tool to set Arnold Settings and Override Settings in an unified UI
 
 ## How to install
 
@@ -11,34 +11,54 @@ You must specify the correct path of the installation folder in the ```template_
 ```python
 if __name__ == '__main__':
     # TODO specify the right path
-    install_dir = 'PATH/TO/template_tool'
+    install_dir = 'PATH/TO/control_room'
     # [...]
 ```
 
----
+[//]: # ()
+[//]: # (---)
 
-## Features
+[//]: # ()
+[//]: # (## Features)
 
-### First Part
+[//]: # ()
+[//]: # (### First Part)
 
-<div align="center">
-  <span>
-    <img src="https://user-images.githubusercontent.com/94440879/216031775-d9ea680f-9a91-4f19-bc4c-6dd7fae4aa6b.png" width=50%>
-  </span>
-  <p weight="bold">Caption</p>
-  <br/>
-</div>
+[//]: # ()
+[//]: # (<div align="center">)
 
-[...]
+[//]: # (  <span>)
 
-### Second Part
+[//]: # (    <img src="https://user-images.githubusercontent.com/94440879/216031775-d9ea680f-9a91-4f19-bc4c-6dd7fae4aa6b.png" width=50%>)
 
-<div align="center">
-  <span>
-    <img src="https://user-images.githubusercontent.com/94440879/216031775-d9ea680f-9a91-4f19-bc4c-6dd7fae4aa6b.png" width=50%>
-  </span>
-  <p weight="bold">Caption</p>
-  <br/>
-</div>
+[//]: # (  </span>)
 
-[...]
+[//]: # (  <p weight="bold">Caption</p>)
+
+[//]: # (  <br/>)
+
+[//]: # (</div>)
+
+[//]: # ()
+[//]: # ([...])
+
+[//]: # ()
+[//]: # (### Second Part)
+
+[//]: # ()
+[//]: # (<div align="center">)
+
+[//]: # (  <span>)
+
+[//]: # (    <img src="https://user-images.githubusercontent.com/94440879/216031775-d9ea680f-9a91-4f19-bc4c-6dd7fae4aa6b.png" width=50%>)
+
+[//]: # (  </span>)
+
+[//]: # (  <p weight="bold">Caption</p>)
+
+[//]: # (  <br/>)
+
+[//]: # (</div>)
+
+[//]: # ()
+[//]: # ([...])

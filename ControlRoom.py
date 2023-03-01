@@ -23,18 +23,15 @@ import maya.OpenMaya as OpenMaya
 
 # ######################################################################################################################
 
-# TODO Change the prefs name for this project
-_FILE_NAME_PREFS = "maya_tool"
+_FILE_NAME_PREFS = "control_room"
 
 # ######################################################################################################################
 
 
-# TODO change class name
-class MayaTool(QDialog):
+class ControlRoom(QDialog):
 
     def __init__(self, prnt=wrapInstance(int(omui.MQtUtil.mainWindow()), QWidget)):
-        # TODO change class name
-        super(MayaTool, self).__init__(prnt)
+        super(ControlRoom, self).__init__(prnt)
         
         # Common Preferences (common preferences on all tools)
         self.__common_prefs = Prefs()
@@ -53,8 +50,7 @@ class MayaTool(QDialog):
         self.__retrieve_prefs()
 
         # name the window
-        # TODO change window name
-        self.setWindowTitle("Maya Tool")
+        self.setWindowTitle("Control Room")
         # make the window a "tool" in Maya's eyes so that it stays on top when you click off
         self.setWindowFlags(QtCore.Qt.Tool)
         # Makes the object get deleted from memory, not just hidden, when it is closed.
