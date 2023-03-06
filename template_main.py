@@ -8,7 +8,18 @@ if __name__ == '__main__':
         sys.path.append(install_dir)
 
     modules = [
-        "ControlRoom"
+        "ControlRoom",
+        "Preset",
+        "PresetManager",
+        "FormSlider",
+        "parts.CameraPart",
+        "parts.FeatureOverridesPart",
+        "parts.DepthOfFieldPart",
+        "parts.MotionBlurPart",
+        "parts.ImageSizePart",
+        "parts.SamplingPart",
+        "parts.AdaptiveSamplingPart",
+        "parts.PresetsPart",
     ]
 
     from utils import *

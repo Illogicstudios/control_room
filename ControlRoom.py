@@ -21,9 +21,21 @@ from Prefs import *
 
 import maya.OpenMaya as OpenMaya
 
+from PresetManager import *
+
+from parts.CameraPart import *
+from parts.FeatureOverridesPart import *
+from parts.DepthOfFieldPart import *
+from parts.MotionBlurPart import *
+from parts.ImageSizePart import *
+from parts.SamplingPart import *
+from parts.AdaptiveSamplingPart import *
+from parts.PresetsPart import *
+
 # ######################################################################################################################
 
 _FILE_NAME_PREFS = "control_room"
+
 
 # ######################################################################################################################
 
@@ -32,20 +44,32 @@ class ControlRoom(QDialog):
 
     def __init__(self, prnt=wrapInstance(int(omui.MQtUtil.mainWindow()), QWidget)):
         super(ControlRoom, self).__init__(prnt)
-        
+
         # Common Preferences (common preferences on all tools)
         self.__common_prefs = Prefs()
         # Preferences for this tool
         self.__prefs = Prefs(_FILE_NAME_PREFS)
 
+        asset_path = os.path.dirname(__file__) + "/assets"
+
         # Model attributes
+        self.__parts = {
+            "camera": CameraPart(self),
+            "feature_overrides": FeatureOverridesPart(self),
+            "dof": DepthOfFieldPart(self),
+            "motion_blur": MotionBlurPart(self),
+            "image_size": ImageSizePart(self),
+            "sampling": SamplingPart(self),
+            "adaptive_sampling": AdaptiveSamplingPart(self),
+            "presets": PresetsPart(self, asset_path),
+        }
 
         # UI attributes
-        self.__ui_width = 500
-        self.__ui_height = 300
-        self.__ui_min_width = 300
-        self.__ui_min_height = 200
-        self.__ui_pos = QDesktopWidget().availableGeometry().center() - QPoint(self.__ui_width,self.__ui_height)/2
+        self.__ui_width = 550
+        self.__ui_height = 900
+        self.__ui_min_width = 550
+        self.__ui_min_height = 900
+        self.__ui_pos = QDesktopWidget().availableGeometry().center() - QPoint(self.__ui_width, self.__ui_height) / 2
 
         self.__retrieve_prefs()
 
@@ -56,9 +80,26 @@ class ControlRoom(QDialog):
         # Makes the object get deleted from memory, not just hidden, when it is closed.
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
-        # Create the layout, linking it to actions and refresh the display
-        self.__create_ui()
-        self.__refresh_ui()
+        if ControlRoom.test_arnold_renderer():
+            # Create the layout, linking it to actions and refresh the display
+            self.__create_ui()
+            self.__refresh_ui()
+            self.__add_callbacks()
+        else:
+            self.close()
+
+    @staticmethod
+    def test_arnold_renderer():
+        arnold_renderer_loaded = objExists("defaultArnoldRenderOptions")
+        if not arnold_renderer_loaded:
+            msg = QMessageBox()
+            msg.setWindowTitle("Error Control Room with Arnold Renderer")
+            msg.setIcon(QMessageBox.Warning)
+            msg.setText("Arnold Renderer not loaded")
+            msg.setInformativeText('Control Room can\'t run without the Arnold Renderer loaded. You '
+                                   'can load the Arnold Renderer by opening the Render Settings Window')
+            msg.exec_()
+        return arnold_renderer_loaded
 
     # Save preferences
     def __save_prefs(self):
@@ -73,19 +114,16 @@ class ControlRoom(QDialog):
             size = self.__prefs["window_size"]
             self.__ui_width = size["width"]
             self.__ui_height = size["height"]
-
         if "window_pos" in self.__prefs:
             pos = self.__prefs["window_pos"]
-            self.__ui_pos = QPoint(pos["x"],pos["y"])
+            self.__ui_pos = QPoint(pos["x"], pos["y"])
 
     def showEvent(self, arg__1: QShowEvent) -> None:
         pass
-        # self.__selection_callback = \
-        #     OpenMaya.MEventMessage.addEventCallback("SelectionChanged", self.on_selection_changed)
 
     # Remove callbacks
     def hideEvent(self, arg__1: QCloseEvent) -> None:
-        # OpenMaya.MMessage.removeCallback(self.__selection_callback)
+        self.__remove_callbacks()
         self.__save_prefs()
 
     # Create the ui
@@ -95,15 +133,44 @@ class ControlRoom(QDialog):
         self.resize(self.__ui_width, self.__ui_height)
         self.move(self.__ui_pos)
 
-        # asset_path = os.path.dirname(__file__) + "/assets/asset.png"
-
         # Main Layout
         main_lyt = QVBoxLayout()
-        main_lyt.setContentsMargins(10, 15, 10, 15)
-        main_lyt.setSpacing(12)
+        main_lyt.setContentsMargins(3, 8, 3, 0)
+        main_lyt.setSpacing(5)
+        main_lyt.setAlignment(Qt.AlignTop)
         self.setLayout(main_lyt)
+
+        for part in self.__parts.values():
+            main_lyt.addLayout(part.create_ui())
 
     # Refresh the ui according to the model attribute
     def __refresh_ui(self):
-        # TODO refresh the UI according to model attributes
-        pass
+        for part in self.__parts.values():
+            part.refresh_ui()
+
+    # Refresh the ui according to the model attribute
+    def __add_callbacks(self):
+        for part in self.__parts.values():
+            part.add_callbacks()
+
+    def __remove_callbacks(self):
+        for part in self.__parts.values():
+            part.remove_callbacks()
+
+    def generate_preset(self, preset_name):
+        preset_manager = PresetManager.get_instance()
+        preset = Preset(name=preset_name, active=True)
+        for part_name, part in self.__parts.items():
+            part.add_to_preset(part_name, preset)
+        preset_manager.add_preset(preset)
+        preset_manager.save_presets()
+
+    def apply_preset(self, preset):
+        for part_name,part in self.__parts.items():
+            part.apply(part_name, preset)
+        for part in self.__parts.values():
+            part.refresh_ui()
+
+    def cam_changed(self, cam):
+        self.__parts["dof"].cam_changed(cam)
+        self.__parts["image_size"].cam_changed(cam)
