@@ -10,6 +10,9 @@ from PySide2.QtGui import *
 
 from utils import *
 
+import ControlRoom as cr
+from ControlRoom import *
+
 class FormSliderType(Enum):
     IntSlider = 0
     FloatSlider = 1
@@ -25,9 +28,32 @@ class FormSlider:
         self.__max = max
         self.__mmax = mmax if mmax is not None else max
         self.__mult = 1000 if self.__type == FormSliderType.FloatSlider else 1
+        self.__callback = None
+        self.__layer_callback = None
+        self.__override = None
+        self.__action_add_override = QAction(text="Add Override")
+        self.__action_add_override.triggered.connect(self.__create_override)
+        self.__action_remove_override = QAction(text="Remove Override")
+        self.__action_remove_override.triggered.connect(self.__remove_override)
+
         self.__ui_value_line_edit = None
         self.__ui_slider = None
-        self.__callback = None
+        self.__ui_lbl_widget = None
+        self.__ui_background_widget = None
+
+        self.__retrieve_override()
+
+    def __create_override(self):
+        obj_attr = self.__field_name.split(".")
+        self.__override = cr.ControlRoom.create_override(obj_attr[0], obj_attr[1])
+
+    def __remove_override(self):
+        cr.ControlRoom.remove_override(self.__override)
+        self.__override = None
+
+    def __retrieve_override(self):
+        obj_attr = self.__field_name.split(".")
+        self.__override = cr.ControlRoom.retrieve_override(obj_attr[0], obj_attr[1])
 
     def __on_slider_value_changed(self, value):
         if self.__type is FormSliderType.IntSlider:
@@ -43,9 +69,17 @@ class FormSlider:
         self.__ui_slider.setValue(value)
         setAttr(self.__field_name, value)
 
+
     def generate_ui(self):
-        lbl = QLabel(self.__name)
-        lyt = QHBoxLayout()
+        self.__ui_lbl_widget = QLabel(self.__name)
+        self.__ui_lbl_widget.setAlignment(Qt.AlignCenter)
+        self.__ui_lbl_widget.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.__ui_lbl_widget.addAction(self.__action_add_override)
+        self.__ui_lbl_widget.addAction(self.__action_remove_override)
+        self.__ui_background_widget = QWidget()
+        self.__ui_background_widget.setObjectName("widget_form_slider")
+        lyt = QHBoxLayout(self.__ui_background_widget)
+        lyt.setContentsMargins(0,0,0,0)
         self.__ui_value_line_edit = QLineEdit()
 
         if self.__type is FormSliderType.IntSlider:
@@ -57,29 +91,49 @@ class FormSlider:
             validator.setNotation(QDoubleValidator.StandardNotation)
         self.__ui_value_line_edit.setValidator(validator)
         self.__ui_value_line_edit.editingFinished.connect(self.__on_edit_value_changed)
+        self.__ui_value_line_edit.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.__ui_value_line_edit.addAction(self.__action_add_override)
+        self.__ui_value_line_edit.addAction(self.__action_remove_override)
         self.__ui_slider = QSlider(Qt.Horizontal)
         self.__ui_slider.setMaximum(self.__max * self.__mult)
         self.__ui_slider.setMinimum(self.__min * self.__mult)
         self.__ui_slider.valueChanged.connect(self.__on_slider_value_changed)
+        self.__ui_slider.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.__ui_slider.addAction(self.__action_add_override)
+        self.__ui_slider.addAction(self.__action_remove_override)
         lyt.addWidget(self.__ui_value_line_edit, 1)
         lyt.addWidget(self.__ui_slider, 3)
-        return lbl, lyt
+
+        return self.__ui_lbl_widget, self.__ui_background_widget
 
     def refresh_ui(self):
+        visible_layer = render_setup.instance().getVisibleRenderLayer()
+        is_default_layer = visible_layer.name() == "defaultRenderLayer"
         val = getAttr(self.__field_name)
         if getAttr(self.__field_name) >= self.__max:
             self.__ui_slider.setMaximum(val* self.__mult)
         self.__ui_slider.setValue(val * self.__mult)
+
         self.__ui_value_line_edit.setText(str(round(getAttr(self.__field_name), 3)))
+        self.__action_add_override.setEnabled(not is_default_layer and self.__override is None)
+        self.__action_remove_override.setEnabled(not is_default_layer and self.__override is not None)
+
+        stylesheet_bg = "background-color:"+cr.OVERRIDE_BG_COLOR if self.__override is not None else ""
+        stylesheet_lbl = "color:"+cr.OVERRIDE_LABEL_COLOR if self.__override is not None else ""
+        self.__ui_background_widget.setStyleSheet("QWidget#widget_form_slider{" + stylesheet_bg + "}")
+        self.__ui_lbl_widget.setStyleSheet("QLabel{" + stylesheet_lbl + "}")
 
     def __callback_action(self):
         self.refresh_ui()
 
     def add_callback(self):
         self.__callback = scriptJob(attributeChange=[self.__field_name, self.__callback_action])
+        self.__layer_callback = scriptJob(event=["renderLayerManagerChange", self.__callback_action])
+
 
     def remove_callback(self):
         scriptJob(kill=self.__callback)
+        scriptJob(kill=self.__layer_callback)
 
     def get_key_preset_and_field(self):
         return self.__key_preset, self.__field_name

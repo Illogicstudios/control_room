@@ -27,12 +27,34 @@ class SamplingPart(ControlRoomPart):
         self.__ui_progressive_render_cb = None
         self.__progressive_render_callback = None
 
+        self.__progressive_render_override = None
+        self.__action_add_progressive_render_override = QAction(text="Add Override")
+        self.__action_add_progressive_render_override.triggered.connect(self.__create_progressive_render_override)
+        self.__action_remove_progressive_render_override = QAction(text="Remove Override")
+        self.__action_remove_progressive_render_override.triggered.connect(self.__remove_progressive_render_override)
+
+        self.__retrieve_progressive_render_override()
+
+    def __create_progressive_render_override(self):
+        self.__progressive_render_override = cr.ControlRoom.create_override("defaultArnoldRenderOptions", "enableProgressiveRender")
+
+    def __remove_progressive_render_override(self):
+        cr.ControlRoom.remove_override(self.__progressive_render_override)
+        self.__progressive_render_override = None
+
+    def __retrieve_progressive_render_override(self):
+        self.__progressive_render_override = cr.ControlRoom.retrieve_override("defaultArnoldRenderOptions", "enableProgressiveRender")
+
     def populate(self):
         content = QVBoxLayout()
         content.setContentsMargins(4, 4, 1, 4)
 
         self.__ui_progressive_render_cb = QCheckBox("Enable Progressive Render")
         self.__ui_progressive_render_cb.stateChanged.connect(self.__on_enable_changed)
+        self.__ui_progressive_render_cb.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.__ui_progressive_render_cb.addAction(self.__action_add_progressive_render_override)
+        self.__ui_progressive_render_cb.addAction(self.__action_remove_progressive_render_override)
+
         content.addWidget(self.__ui_progressive_render_cb)
 
         form_layout = QFormLayout()
@@ -44,9 +66,17 @@ class SamplingPart(ControlRoomPart):
         return content
 
     def refresh_ui(self):
+        visible_layer = render_setup.instance().getVisibleRenderLayer()
+        is_default_layer = visible_layer.name() == "defaultRenderLayer"
         self.__ui_progressive_render_cb.setChecked(getAttr("defaultArnoldRenderOptions.enableProgressiveRender"))
         for fs in self.__form_sliders:
             fs.refresh_ui()
+
+        self.__action_add_progressive_render_override.setEnabled(not is_default_layer and self.__progressive_render_override is None)
+        self.__action_remove_progressive_render_override.setEnabled(not is_default_layer and self.__progressive_render_override is not None)
+
+        stylesheet_lbl = "color:" + cr.OVERRIDE_LABEL_COLOR if self.__progressive_render_override is not None else ""
+        self.__ui_progressive_render_cb.setStyleSheet("QCheckBox{" + stylesheet_lbl + "}")
 
     def __on_enable_changed(self, state):
         setAttr("defaultArnoldRenderOptions.enableProgressiveRender", state == 2)

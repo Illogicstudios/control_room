@@ -1,3 +1,6 @@
+
+import ControlRoom as cr
+from ControlRoom import *
 from ControlRoomPart import *
 from pymel.core import *
 
@@ -9,9 +12,28 @@ class IgnoreFields:
         self.__key_preset = key_preset
         self.__checkbox = None
         self.__callback = None
+        self.__override = None
+        self.__action_add_override = QAction(text="Add Override")
+        self.__action_add_override.triggered.connect(self.__create_override)
+        self.__action_remove_override = QAction(text="Remove Override")
+        self.__action_remove_override.triggered.connect(self.__remove_override)
+        self.__retrieve_override()
+
+    def __create_override(self):
+        obj_attr = self.__field_name.split(".")
+        self.__override = cr.ControlRoom.create_override(obj_attr[0], obj_attr[1])
+
+    def __remove_override(self):
+        cr.ControlRoom.remove_override(self.__override)
+        self.__override = None
+
+    def __retrieve_override(self):
+        obj_attr = self.__field_name.split(".")
+        self.__override = cr.ControlRoom.retrieve_override(obj_attr[0], obj_attr[1])
+
 
     def __on_state_changed(self, state):
-        setAttr("defaultArnoldRenderOptions." + self.__field_name, state == 2)
+        setAttr(self.__field_name, state == 2)
 
     def get_key_preset_and_field(self):
         return self.__key_preset, self.__field_name
@@ -19,20 +41,26 @@ class IgnoreFields:
     def generate_checkbox(self):
         self.__checkbox = QCheckBox(self.__name)
         self.__checkbox.stateChanged.connect(self.__on_state_changed)
+        self.__checkbox.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.__checkbox.addAction(self.__action_add_override)
+        self.__checkbox.addAction(self.__action_remove_override)
         return self.__checkbox
 
     def refresh_checkbox(self):
-        self.__checkbox.setChecked(getAttr("defaultArnoldRenderOptions." + self.__field_name))
+        visible_layer = render_setup.instance().getVisibleRenderLayer()
+        is_default_layer = visible_layer.name() == "defaultRenderLayer"
+        self.__checkbox.setChecked(getAttr(self.__field_name))
+        self.__action_add_override.setEnabled(not is_default_layer and self.__override is None)
+        self.__action_remove_override.setEnabled(not is_default_layer and self.__override is not None)
+        stylesheet_lbl = "color:" + cr.OVERRIDE_LABEL_COLOR if self.__override is not None else ""
+        self.__checkbox.setStyleSheet("QCheckBox{" + stylesheet_lbl + "}")
 
     def __callback_action(self):
         self.refresh_checkbox()
 
     def add_callback(self):
         self.__callback = scriptJob(
-            attributeChange=['defaultArnoldRenderOptions.' + self.__field_name, self.__callback_action])
-
-    def get_preset_value_tuple(self):
-        return self.__key_preset, getAttr("defaultArnoldRenderOptions." + self.__field_name)
+            attributeChange=[self.__field_name, self.__callback_action])
 
     def remove_callback(self):
         scriptJob(kill=self.__callback)
@@ -42,11 +70,11 @@ class FeatureOverridesPart(ControlRoomPart):
     def __init__(self, control_room):
         super(FeatureOverridesPart, self).__init__(control_room, "Feature Overrides")
         self.__ignore_fields = [
-            IgnoreFields("Ignore Subdivision", "ignoreSubdivision", "ignore_subdivision"),
-            IgnoreFields("Ignore Athmosphere", "ignoreAtmosphere", "ignore_atmosphere"),
-            IgnoreFields("Ignore Displacement", "ignoreDisplacement", "ignore_displacement"),
-            IgnoreFields("Ignore Motion", "ignoreMotion", "ignore_motion"),
-            IgnoreFields("Ignore Depth of field", "ignoreDof", "ignore_dof")
+            IgnoreFields("Ignore Subdivision", "defaultArnoldRenderOptions.ignoreSubdivision", "ignore_subdivision"),
+            IgnoreFields("Ignore Athmosphere", "defaultArnoldRenderOptions.ignoreAtmosphere", "ignore_atmosphere"),
+            IgnoreFields("Ignore Displacement", "defaultArnoldRenderOptions.ignoreDisplacement", "ignore_displacement"),
+            IgnoreFields("Ignore Motion", "defaultArnoldRenderOptions.ignoreMotion", "ignore_motion"),
+            IgnoreFields("Ignore Depth of field", "defaultArnoldRenderOptions.ignoreDof", "ignore_dof")
         ]
         self.__ignore_aovs = False
 
@@ -133,15 +161,15 @@ class FeatureOverridesPart(ControlRoomPart):
 
     def add_to_preset(self, part_name, preset):
         for ign_field in self.__ignore_fields:
-            key, value = ign_field.get_preset_value_tuple()
-            preset.set(part_name, key, value)
+            key, field = ign_field.get_key_preset_and_field()
+            preset.set(part_name, key, getAttr(field))
         preset.set(part_name, "ignore_aovs", self.__ignore_aovs)
         preset.set(part_name, "output_denoising", getAttr("defaultArnoldRenderOptions.outputVarianceAOVs"))
 
     def apply(self, part_name, preset):
         for ign_field in self.__ignore_fields:
             key, field = ign_field.get_key_preset_and_field()
-            setAttr("defaultArnoldRenderOptions."+field, preset.get(part_name, key))
+            setAttr(field, preset.get(part_name, key))
         self.__ignore_aovs = preset.get(part_name, "ignore_aovs")
         self.__ignore_aovs_action()
         setAttr("defaultArnoldRenderOptions.outputVarianceAOVs", preset.get(part_name, "output_denoising"))

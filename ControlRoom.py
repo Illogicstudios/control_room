@@ -23,6 +23,11 @@ import maya.OpenMaya as OpenMaya
 
 from PresetManager import *
 
+import maya.mel as mel
+import maya.app.renderSetup.model.override as maya_override
+import maya.app.renderSetup.model.renderSetup as render_setup
+import maya.app.renderSetup.model.utils as render_setup_utils
+
 from parts.CameraPart import *
 from parts.FeatureOverridesPart import *
 from parts.DepthOfFieldPart import *
@@ -36,11 +41,32 @@ from parts.PresetsPart import *
 
 _FILE_NAME_PREFS = "control_room"
 
+OVERRIDE_BG_COLOR = "rgb(100,50,25)"
+OVERRIDE_LABEL_COLOR = "rgb(230,115,60)"
 
 # ######################################################################################################################
 
 
 class ControlRoom(QDialog):
+
+    @staticmethod
+    def create_override(obj_name, attr_name):
+        visible_layer = render_setup.instance().getVisibleRenderLayer()
+        col = visible_layer.renderSettingsCollectionInstance()
+        return col.createAbsoluteOverride(obj_name, attr_name)
+
+    @staticmethod
+    def remove_override(override):
+        if override is not None:
+            maya_override.delete(override)
+
+    @staticmethod
+    def retrieve_override(obj_name, attr_name):
+        visible_layer = render_setup.instance().getVisibleRenderLayer()
+        for override in render_setup_utils.getOverridesRecursive(visible_layer):
+            if obj_name == override.targetNodeName() and attr_name == override.attributeName():
+                return override
+        return None
 
     def __init__(self, prnt=wrapInstance(int(omui.MQtUtil.mainWindow()), QWidget)):
         super(ControlRoom, self).__init__(prnt)
@@ -66,9 +92,8 @@ class ControlRoom(QDialog):
 
         # UI attributes
         self.__ui_width = 550
-        self.__ui_height = 900
+        self.__ui_height = 940
         self.__ui_min_width = 550
-        self.__ui_min_height = 900
         self.__ui_pos = QDesktopWidget().availableGeometry().center() - QPoint(self.__ui_width, self.__ui_height) / 2
 
         self.__retrieve_prefs()
@@ -104,7 +129,7 @@ class ControlRoom(QDialog):
     # Save preferences
     def __save_prefs(self):
         size = self.size()
-        self.__prefs["window_size"] = {"width": size.width(), "height": size.height()}
+        self.__prefs["window_size"] = {"width": size.width()}
         pos = self.pos()
         self.__prefs["window_pos"] = {"x": pos.x(), "y": pos.y()}
 
@@ -113,7 +138,6 @@ class ControlRoom(QDialog):
         if "window_size" in self.__prefs:
             size = self.__prefs["window_size"]
             self.__ui_width = size["width"]
-            self.__ui_height = size["height"]
         if "window_pos" in self.__prefs:
             pos = self.__prefs["window_pos"]
             self.__ui_pos = QPoint(pos["x"], pos["y"])
@@ -129,7 +153,8 @@ class ControlRoom(QDialog):
     # Create the ui
     def __create_ui(self):
         # Reinit attributes of the UI
-        self.setMinimumSize(self.__ui_min_width, self.__ui_min_height)
+        self.setMinimumWidth(self.__ui_min_width)
+        self.setFixedHeight(self.__ui_height)
         self.resize(self.__ui_width, self.__ui_height)
         self.move(self.__ui_pos)
 

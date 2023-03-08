@@ -12,6 +12,23 @@ class AdaptiveSamplingPart(ControlRoomPart):
         ]
         self.__ui_enable_cb = None
         self.__enable_callback = None
+        self.__adaptive_sampling_override = None
+        self.__action_add_adaptive_sampling_override = QAction(text="Add Override")
+        self.__action_add_adaptive_sampling_override.triggered.connect(self.__create_adaptive_sampling_override)
+        self.__action_remove_adaptive_sampling_override = QAction(text="Remove Override")
+        self.__action_remove_adaptive_sampling_override.triggered.connect(self.__remove_adaptive_sampling_override)
+
+        self.__retrieve_adaptive_sampling_override()
+
+    def __create_adaptive_sampling_override(self):
+        self.__adaptive_sampling_override = cr.ControlRoom.create_override("defaultArnoldRenderOptions", "enableAdaptiveSampling")
+
+    def __remove_adaptive_sampling_override(self):
+        cr.ControlRoom.remove_override(self.__adaptive_sampling_override)
+        self.__adaptive_sampling_override = None
+
+    def __retrieve_adaptive_sampling_override(self):
+        self.__adaptive_sampling_override = cr.ControlRoom.retrieve_override("defaultArnoldRenderOptions", "enableAdaptiveSampling")
 
     def populate(self):
         content = QVBoxLayout()
@@ -19,6 +36,10 @@ class AdaptiveSamplingPart(ControlRoomPart):
 
         self.__ui_enable_cb = QCheckBox("Enable Adaptive Sampling")
         self.__ui_enable_cb.stateChanged.connect(self.__on_enable_changed)
+        self.__ui_enable_cb.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.__ui_enable_cb.addAction(self.__action_add_adaptive_sampling_override)
+        self.__ui_enable_cb.addAction(self.__action_remove_adaptive_sampling_override)
+
         content.addWidget(self.__ui_enable_cb)
 
         form_layout = QFormLayout()
@@ -30,9 +51,18 @@ class AdaptiveSamplingPart(ControlRoomPart):
         return content
 
     def refresh_ui(self):
+        visible_layer = render_setup.instance().getVisibleRenderLayer()
+        is_default_layer = visible_layer.name() == "defaultRenderLayer"
+
         self.__ui_enable_cb.setChecked(getAttr("defaultArnoldRenderOptions.enableAdaptiveSampling"))
         for fs in self.__form_sliders:
             fs.refresh_ui()
+
+        self.__action_add_adaptive_sampling_override.setEnabled(not is_default_layer and self.__adaptive_sampling_override is None)
+        self.__action_remove_adaptive_sampling_override.setEnabled(not is_default_layer and self.__adaptive_sampling_override is not None)
+
+        stylesheet_lbl = "color:" + cr.OVERRIDE_LABEL_COLOR if self.__adaptive_sampling_override is not None else ""
+        self.__ui_enable_cb.setStyleSheet("QCheckBox{" + stylesheet_lbl + "}")
 
     def __on_enable_changed(self, state):
         setAttr("defaultArnoldRenderOptions.enableAdaptiveSampling", state==2)

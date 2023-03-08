@@ -97,7 +97,7 @@ class PresetsPart(ControlRoomPart):
         if index < 4:
             add_preset_btn = QPushButton("New Preset")
             if index == 0:
-                add_preset_btn.setStyleSheet("padding: 3px;margin-top:12px")
+                add_preset_btn.setStyleSheet("padding: 3px;margin-top:18px")
             add_preset_btn.setIconSize(QtCore.QSize(18, 18))
             add_preset_btn.setIcon(QIcon(QPixmap(os.path.join(self.__asset_path, "add.png"))))
             add_preset_btn.clicked.connect(partial(self.__generate_new_preset))

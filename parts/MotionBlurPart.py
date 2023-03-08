@@ -16,6 +16,44 @@ class MotionBlurPart(ControlRoomPart):
         self.__ui_instant_shutter_cb = None
         self.__enable_callback = None
         self.__instant_shutter_callback = None
+        self.__motion_blur_override = None
+        self.__instant_shutter_override = None
+        self.__action_add_motion_blur_override = QAction(text="Add Override")
+        self.__action_add_motion_blur_override.triggered.connect(self.__create_motion_blur_override)
+        self.__action_remove_motion_blur_override = QAction(text="Remove Override")
+        self.__action_remove_motion_blur_override.triggered.connect(self.__remove_motion_blur_override)
+
+        self.__action_add_instant_shutter_override = QAction(text="Add Override")
+        self.__action_add_instant_shutter_override.triggered.connect(self.__create_instant_shutter_override)
+        self.__action_remove_instant_shutter_override = QAction(text="Remove Override")
+        self.__action_remove_instant_shutter_override.triggered.connect(self.__remove_instant_shutter_override)
+
+        self.__retrieve_motion_blur_override()
+        self.__retrieve_instant_shutter_override()
+
+    def __create_motion_blur_override(self):
+        self.__motion_blur_override = \
+            cr.ControlRoom.create_override("defaultArnoldRenderOptions", "motion_blur_enable")
+
+    def __remove_motion_blur_override(self):
+        cr.ControlRoom.remove_override(self.__motion_blur_override)
+        self.__motion_blur_override = None
+
+    def __retrieve_motion_blur_override(self):
+        self.__motion_blur_override = \
+            cr.ControlRoom.retrieve_override("defaultArnoldRenderOptions", "motion_blur_enable")
+
+    def __create_instant_shutter_override(self):
+        self.__instant_shutter_override = \
+            cr.ControlRoom.create_override("defaultArnoldRenderOptions", "ignoreMotionBlur")
+
+    def __remove_instant_shutter_override(self):
+        cr.ControlRoom.remove_override(self.__instant_shutter_override)
+        self.__instant_shutter_override = None
+
+    def __retrieve_instant_shutter_override(self):
+        self.__instant_shutter_override = \
+            cr.ControlRoom.retrieve_override("defaultArnoldRenderOptions", "ignoreMotionBlur")
 
     def populate(self):
         content = QVBoxLayout()
@@ -24,9 +62,15 @@ class MotionBlurPart(ControlRoomPart):
         lyt_cb = QHBoxLayout()
         self.__ui_enable_cb = QCheckBox("Enable Motion Blur")
         self.__ui_enable_cb.stateChanged.connect(self.__on_enable_changed)
+        self.__ui_enable_cb.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.__ui_enable_cb.addAction(self.__action_add_motion_blur_override)
+        self.__ui_enable_cb.addAction(self.__action_remove_motion_blur_override)
         lyt_cb.addWidget(self.__ui_enable_cb)
         self.__ui_instant_shutter_cb = QCheckBox("Instantaneous Shutter")
         self.__ui_instant_shutter_cb.stateChanged.connect(self.__on_instant_shutter_changed)
+        self.__ui_instant_shutter_cb.setContextMenuPolicy(Qt.ActionsContextMenu)
+        self.__ui_instant_shutter_cb.addAction(self.__action_add_instant_shutter_override)
+        self.__ui_instant_shutter_cb.addAction(self.__action_remove_instant_shutter_override)
         lyt_cb.addWidget(self.__ui_instant_shutter_cb)
         content.addLayout(lyt_cb)
 
@@ -39,10 +83,29 @@ class MotionBlurPart(ControlRoomPart):
         return content
 
     def refresh_ui(self):
+        visible_layer = render_setup.instance().getVisibleRenderLayer()
+        is_default_layer = visible_layer.name() == "defaultRenderLayer"
         self.__ui_enable_cb.setChecked(getAttr("defaultArnoldRenderOptions.motion_blur_enable"))
         self.__ui_instant_shutter_cb.setChecked(getAttr("defaultArnoldRenderOptions.ignoreMotionBlur"))
         for fs in self.__form_sliders:
             fs.refresh_ui()
+
+        self.__action_add_motion_blur_override.setEnabled(
+            not is_default_layer and self.__motion_blur_override is None)
+        self.__action_remove_motion_blur_override.setEnabled(
+            not is_default_layer and self.__motion_blur_override is not None)
+        self.__action_add_instant_shutter_override.setEnabled(
+            not is_default_layer and self.__instant_shutter_override is None)
+        self.__action_remove_instant_shutter_override.setEnabled(
+            not is_default_layer and self.__instant_shutter_override is not None)
+
+        motion_blur_stylesheet_lbl = "color:"+cr.OVERRIDE_LABEL_COLOR \
+            if self.__motion_blur_override is not None else ""
+        instant_shutter_stylesheet_lbl = "color:"+cr.OVERRIDE_LABEL_COLOR \
+            if self.__instant_shutter_override is not None else ""
+        self.__ui_enable_cb.setStyleSheet("QCheckBox{" + motion_blur_stylesheet_lbl + "}")
+        self.__ui_instant_shutter_cb.setStyleSheet("QCheckBox{" + instant_shutter_stylesheet_lbl + "}")
+
 
     def __on_enable_changed(self, state):
         setAttr("defaultArnoldRenderOptions.motion_blur_enable", state == 2)

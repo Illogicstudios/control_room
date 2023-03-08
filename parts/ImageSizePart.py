@@ -23,6 +23,7 @@ class ImageSizePart(ControlRoomPart):
         self.__overscan_callback = None
         self.__ratio_selected = None
         self.__is_gate_opaque = False
+        self.__is_gate_enabled = False
 
         self.__ui_width_edit = None
         self.__ui_height_edit = None
@@ -32,6 +33,7 @@ class ImageSizePart(ControlRoomPart):
         self.__ui_overscan_line_edit = None
         self.__ui_overscan_slider = None
         self.__ui_opaque_gate_cb = None
+        self.__ui_enable_gate_cb = None
 
         self.__retrieve_aspect_ratio()
 
@@ -87,14 +89,20 @@ class ImageSizePart(ControlRoomPart):
         lyt.addWidget(self.__ui_overscan_line_edit, 1)
         lyt.addWidget(self.__ui_overscan_slider, 3)
         form_lyt.addRow(lbl, lyt)
-        self.__ui_opaque_gate_cb = QCheckBox()
-        self.__ui_opaque_gate_cb.setStyleSheet("margin-left:3px")
+
+        camera_gate_lyt = QHBoxLayout()
+        self.__ui_enable_gate_cb = QCheckBox("Enable Gate")
+        self.__ui_enable_gate_cb.stateChanged.connect(self.__on_gate_enable_changed)
+        self.__ui_opaque_gate_cb = QCheckBox("Opaque Gate")
         self.__ui_opaque_gate_cb.stateChanged.connect(self.__on_gate_opacity_changed)
-        form_lyt.addRow("Opaque Gate",self.__ui_opaque_gate_cb)
+        camera_gate_lyt.addWidget(self.__ui_enable_gate_cb, 1)
+        camera_gate_lyt.addWidget(self.__ui_opaque_gate_cb, 1)
+
         content.addLayout(size_lyt)
         content.addLayout(ratios_lyt)
         content.addLayout(format_lyt)
         content.addLayout(form_lyt)
+        content.addLayout(camera_gate_lyt)
         return content
 
     def __on_overscan_changed(self):
@@ -104,7 +112,7 @@ class ImageSizePart(ControlRoomPart):
     def __on_slider_overscan_changed(self, value):
         if self.__cam is not None:
             value = value / 1000
-            if value>0:
+            if value > 0:
                 self.__ui_overscan_line_edit.setText(str(value))
                 self.__cam.overscan.set(value)
 
@@ -143,10 +151,15 @@ class ImageSizePart(ControlRoomPart):
                 self.__ratio_selected = name
                 break
 
-    def set_gate_opacity(self):
+    def set_gate_attr(self):
         if self.__cam is not None:
             self.__cam.displayGateMaskOpacity.set(1.0 if self.__is_gate_opaque else 0.7)
-            self.__cam.displayGateMaskColor.set((0,0,0) if self.__is_gate_opaque else (0.5,0.5,0.5))
+            self.__cam.displayGateMaskColor.set((0, 0, 0) if self.__is_gate_opaque else (0.5, 0.5, 0.5))
+            self.__cam.displayResolution.set(self.__is_gate_enabled)
+
+    def set_gate_enable(self):
+        if self.__cam is not None:
+            self.__cam.displayResolution.set(self.__is_gate_enabled)
 
     def refresh_ui(self):
         width_retrieved = getAttr("defaultResolution.width")
@@ -165,13 +178,20 @@ class ImageSizePart(ControlRoomPart):
         hd_selected = is_ratio_found and width_retrieved == _AspectRatios[self.__ratio_selected]["HD"]
         self.__ui_sd_format_btn.setStyleSheet(stylesheet_selected if sd_selected else "")
         self.__ui_hd_format_btn.setStyleSheet(stylesheet_selected if hd_selected else "")
-        overscan = self.__cam.overscan.get()
-        self.__ui_overscan_slider.setValue(overscan*1000)
-        self.__ui_overscan_line_edit.setText(str(overscan))
+        if self.__cam is not None:
+            overscan = self.__cam.overscan.get()
+            self.__ui_overscan_slider.setValue(overscan * 1000)
+            self.__ui_overscan_line_edit.setText(str(overscan))
+        self.__ui_enable_gate_cb.setChecked(self.__is_gate_enabled)
+        self.__ui_opaque_gate_cb.setChecked(self.__is_gate_opaque)
 
     def __on_gate_opacity_changed(self, state):
-        self.__is_gate_opaque = state==2
-        self.set_gate_opacity()
+        self.__is_gate_opaque = state == 2
+        self.set_gate_attr()
+
+    def __on_gate_enable_changed(self, state):
+        self.__is_gate_enabled = state == 2
+        self.set_gate_enable()
 
     def __on_width_changed(self):
         setAttr("defaultResolution.width", int(self.__ui_width_edit.text()))
@@ -205,27 +225,37 @@ class ImageSizePart(ControlRoomPart):
     def remove_dynamic_callbacks(self):
         if self.__overscan_callback is not None:
             scriptJob(kill=self.__overscan_callback)
-            self.__overscan_callback= None
+            self.__overscan_callback = None
+
+    def __retrieve_gate_attr(self):
+        if self.__cam is not None:
+            self.__is_gate_enabled = self.__cam.displayResolution.get()
+            self.__is_gate_opaque = self.__cam.displayGateMaskOpacity.get() == 1.0
 
     def add_to_preset(self, part_name, preset):
         preset.set(part_name, "width", getAttr("defaultResolution.width"))
         preset.set(part_name, "height", getAttr("defaultResolution.height"))
-        preset.set(part_name, "height", getAttr("defaultResolution.height"))
         if self.__cam is not None:
             preset.set(part_name, "overscan", self.__cam.overscan.get())
             preset.set(part_name, "opacity_gate", self.__is_gate_opaque)
+            preset.set(part_name, "gate_enabled", self.__is_gate_enabled)
 
     def apply(self, part_name, preset):
-        setAttr("defaultResolution.width", preset.get(part_name,"width"))
-        setAttr("defaultResolution.height", preset.get(part_name,"height"))
-        setAttr("defaultResolution.height", preset.get(part_name,"height"))
+        width = preset.get(part_name, "width")
+        height = preset.get(part_name, "height")
+        setAttr("defaultResolution.width", width)
+        setAttr("defaultResolution.height", height)
+        setAttr("defaultResolution.deviceAspectRatio", width / height)
+        self.__retrieve_aspect_ratio()
         if self.__cam is not None:
             self.__cam.overscan.set(preset.get(part_name, "overscan"))
             self.__is_gate_opaque = preset.get(part_name, "opacity_gate") == 1
-            self.set_gate_opacity()
+            self.__is_gate_enabled = preset.get(part_name, "gate_enabled")
+            self.set_gate_attr()
 
     def cam_changed(self, cam):
         self.__cam = cam
+        self.__retrieve_gate_attr()
         self.remove_dynamic_callbacks()
         self.add_dynamic_callbacks()
         self.refresh_ui()
