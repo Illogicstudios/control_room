@@ -28,7 +28,7 @@ if __name__ == '__main__':
 
 <div align="center">
   <span>
-    <img src="https://user-images.githubusercontent.com/94440879/223733969-5268657c-8c93-447c-8129-8b9ea97a7d2a.png" width=80%>
+    <img src="https://user-images.githubusercontent.com/94440879/223733969-5268657c-8c93-447c-8129-8b9ea97a7d2a.png" width=50%>
   </span>
   <p weight="bold">Control Room Tool</p>
   <br/>
