@@ -1,4 +1,3 @@
-
 import ControlRoom as cr
 from ControlRoom import *
 from ControlRoomPart import *
@@ -12,6 +11,7 @@ class IgnoreFields:
         self.__key_preset = key_preset
         self.__checkbox = None
         self.__callback = None
+        self.__layer_callback = None
         self.__override = None
         self.__action_add_override = QAction(text="Add Override")
         self.__action_add_override.triggered.connect(self.__create_override)
@@ -19,25 +19,30 @@ class IgnoreFields:
         self.__action_remove_override.triggered.connect(self.__remove_override)
         self.__retrieve_override()
 
+    # Create an override for the field of the checkbox
     def __create_override(self):
         obj_attr = self.__field_name.split(".")
         self.__override = cr.ControlRoom.create_override(obj_attr[0], obj_attr[1])
 
+    # Remove the override of the field of the checkbox
     def __remove_override(self):
         cr.ControlRoom.remove_override(self.__override)
         self.__override = None
 
+    # Retrieve the override of the field of the checkbox
     def __retrieve_override(self):
         obj_attr = self.__field_name.split(".")
         self.__override = cr.ControlRoom.retrieve_override(obj_attr[0], obj_attr[1])
 
-
+    # On checkbox changed
     def __on_state_changed(self, state):
         setAttr(self.__field_name, state == 2)
 
+    # Getter of the key preset and the field
     def get_key_preset_and_field(self):
         return self.__key_preset, self.__field_name
 
+    # Generate the checkbox
     def generate_checkbox(self):
         self.__checkbox = QCheckBox(self.__name)
         self.__checkbox.stateChanged.connect(self.__on_state_changed)
@@ -46,6 +51,7 @@ class IgnoreFields:
         self.__checkbox.addAction(self.__action_remove_override)
         return self.__checkbox
 
+    # Refresh the checkbox
     def refresh_checkbox(self):
         visible_layer = render_setup.instance().getVisibleRenderLayer()
         is_default_layer = visible_layer.name() == "defaultRenderLayer"
@@ -55,15 +61,13 @@ class IgnoreFields:
         stylesheet_lbl = "color:" + cr.OVERRIDE_LABEL_COLOR if self.__override is not None else ""
         self.__checkbox.setStyleSheet("QCheckBox{" + stylesheet_lbl + "}")
 
-    def __callback_action(self):
-        self.refresh_checkbox()
-
     def add_callback(self):
-        self.__callback = scriptJob(
-            attributeChange=[self.__field_name, self.__callback_action])
+        self.__callback = scriptJob(attributeChange=[self.__field_name, self.refresh_checkbox])
+        self.__layer_callback = scriptJob(event=["renderLayerManagerChange", self.refresh_checkbox])
 
     def remove_callback(self):
         scriptJob(kill=self.__callback)
+        scriptJob(kill=self.__layer_callback)
 
 
 class FeatureOverridesPart(ControlRoomPart):
@@ -118,10 +122,12 @@ class FeatureOverridesPart(ControlRoomPart):
         self.__refresh_ignore_aov()
         self.__refresh_output_denoising_aov()
 
+    # Refresh all the ignore fields
     def __refresh_ignore_fields(self):
         for ign_field in self.__ignore_fields:
             ign_field.refresh_checkbox()
 
+    # Refresh the ignore aovs field
     def __refresh_ignore_aov(self):
         aovs = ls(type="aiAOV")
         enabled_aov = [aov for aov in aovs if aov.enabled.get()]
@@ -129,20 +135,24 @@ class FeatureOverridesPart(ControlRoomPart):
         nb_enabled_aovs = len(enabled_aov)
         self.__ui_ignore_aovs_cb.setText("Ignore AOVs [" + str(nb_enabled_aovs) + "/" + str(nb_aovs) + "]")
 
+    # Refresh teh output denoising aov field
     def __refresh_output_denoising_aov(self):
         checked = ls("defaultArnoldRenderOptions")[0].outputVarianceAOVs.get()
         self.__ui_output_denoising_aovs_cb.setChecked(checked)
 
+    # On ignore aov checkbox changed
     def __on_state_changed_ignore_aovs(self, state):
         self.__ignore_aovs = state == 2
         self.__ignore_aovs_action()
         self.__refresh_ignore_aov()
 
+    # Refresh the state of AOVs
     def __ignore_aovs_action(self):
         aov_list = ls(type="aiAOV")
         for aov in aov_list:
             aov.enabled.set(not self.__ignore_aovs)
 
+    # On output denoising aov checkbox changed
     def __on_state_changed_output_denoising_aovs(self, state):
         ls("defaultArnoldRenderOptions")[0].outputVarianceAOVs.set(state == 2)
         self.__refresh_output_denoising_aov()

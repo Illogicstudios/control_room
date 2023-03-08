@@ -44,22 +44,26 @@ _FILE_NAME_PREFS = "control_room"
 OVERRIDE_BG_COLOR = "rgb(100,50,25)"
 OVERRIDE_LABEL_COLOR = "rgb(230,115,60)"
 
+
 # ######################################################################################################################
 
 
 class ControlRoom(QDialog):
 
+    # Generic function that create an override for an attribute of an object
     @staticmethod
     def create_override(obj_name, attr_name):
         visible_layer = render_setup.instance().getVisibleRenderLayer()
         col = visible_layer.renderSettingsCollectionInstance()
         return col.createAbsoluteOverride(obj_name, attr_name)
 
+    # Generic function that remove an override
     @staticmethod
     def remove_override(override):
         if override is not None:
             maya_override.delete(override)
 
+    # Generic function that retrieve an override for an attribute of an object
     @staticmethod
     def retrieve_override(obj_name, attr_name):
         visible_layer = render_setup.instance().getVisibleRenderLayer()
@@ -113,6 +117,7 @@ class ControlRoom(QDialog):
         else:
             self.close()
 
+    # Test if Arnold is loaded and display a warning popup if it is not
     @staticmethod
     def test_arnold_renderer():
         arnold_renderer_loaded = objExists("defaultArnoldRenderOptions")
@@ -142,10 +147,7 @@ class ControlRoom(QDialog):
             pos = self.__prefs["window_pos"]
             self.__ui_pos = QPoint(pos["x"], pos["y"])
 
-    def showEvent(self, arg__1: QShowEvent) -> None:
-        pass
-
-    # Remove callbacks
+    # Remove callbacks and save preferences
     def hideEvent(self, arg__1: QCloseEvent) -> None:
         self.__remove_callbacks()
         self.__save_prefs()
@@ -173,15 +175,17 @@ class ControlRoom(QDialog):
         for part in self.__parts.values():
             part.refresh_ui()
 
-    # Refresh the ui according to the model attribute
+    # Add the callbacks of all parts
     def __add_callbacks(self):
         for part in self.__parts.values():
             part.add_callbacks()
 
+    # Remove the callbacks of all parts
     def __remove_callbacks(self):
         for part in self.__parts.values():
             part.remove_callbacks()
 
+    # Generate a preset with the attributes of all parts
     def generate_preset(self, preset_name):
         preset_manager = PresetManager.get_instance()
         preset = Preset(name=preset_name, active=True)
@@ -190,12 +194,14 @@ class ControlRoom(QDialog):
         preset_manager.add_preset(preset)
         preset_manager.save_presets()
 
+    # Apply a preset to all parts
     def apply_preset(self, preset):
-        for part_name,part in self.__parts.items():
+        for part_name, part in self.__parts.items():
             part.apply(part_name, preset)
         for part in self.__parts.values():
             part.refresh_ui()
 
+    # On cam changed
     def cam_changed(self, cam):
         self.__parts["dof"].cam_changed(cam)
         self.__parts["image_size"].cam_changed(cam)

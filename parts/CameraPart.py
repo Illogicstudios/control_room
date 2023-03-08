@@ -4,6 +4,7 @@ from pymel.core import *
 
 class CameraPart(ControlRoomPart):
 
+    # Getter of the renderable cameras in the scene
     @staticmethod
     def __get_renderable_cameras():
         cameras = ls(type="camera")
@@ -50,15 +51,17 @@ class CameraPart(ControlRoomPart):
         for i, cam in enumerate(CameraPart.__get_renderable_cameras()):
             if cam == cam_selected:
                 index_selected = i
-            self.__ui_combobox_cameras.addItem(str(cam),cam)
+            self.__ui_combobox_cameras.addItem(str(cam), cam)
 
         if index_selected is not None:
             self.__ui_combobox_cameras.setCurrentIndex(index_selected)
 
+    # On selected camera changed
     def __on_item_camera_changed(self, index):
         self.__cam_selected = self.__ui_combobox_cameras.itemData(index)
         self._control_room.cam_changed(self.__cam_selected)
 
+    # On camera created refresh the ui
     def __on_camera_created(self, *args, **kwargs):
         self.refresh_ui()
 

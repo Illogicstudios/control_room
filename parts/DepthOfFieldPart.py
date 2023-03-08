@@ -43,18 +43,21 @@ class DepthOfFieldPart(ControlRoomPart):
             self.__ui_line_edit_fstop.setEnabled(enabled)
             self.__ui_line_edit_fstop.setText(str(round(self.__cam.fStop.get(), 3)))
 
+    # On checkbox Depth of Field changed
     def __on_dof_changed(self, state):
         if self.__cam is not None:
             self.__no_refresh = True
             self.__cam.depthOfField.set(state == 2)
             self.__no_refresh = False
 
+    # On FStop line edit changed
     def __on_fstop_changed(self):
         if self.__cam is not None:
             self.__no_refresh = True
             self.__cam.fStop.set(float(self.__ui_line_edit_fstop.text()))
             self.__no_refresh = False
 
+    # On camera changed refresh the callbacks and the UI
     def cam_changed(self, cam):
         self.__cam = cam
         self.remove_callbacks()
@@ -62,8 +65,10 @@ class DepthOfFieldPart(ControlRoomPart):
         self.refresh_ui()
 
     def add_callbacks(self):
+        # Nothing
         pass
 
+    # Add callbacks to the current camera
     def add_dynamic_callbacks(self):
         if self.__cam is not None:
             self.__camera_dof_callback = scriptJob(
@@ -71,6 +76,7 @@ class DepthOfFieldPart(ControlRoomPart):
             self.__camera_fstop_callback = scriptJob(
                 attributeChange=[self.__cam + '.fStop', self.refresh_ui])
 
+    # Remove the callbacks from the current camera
     def remove_callbacks(self):
         if self.__camera_dof_callback is not None:
             scriptJob(kill=self.__camera_dof_callback)

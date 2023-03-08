@@ -6,9 +6,10 @@ from Preset import *
 
 
 class PresetManager:
-    # ################################################### singleton ####################################################
+    # ################################################### Singleton ####################################################
     __instance = None
 
+    # Getter of the instance for the Singleton pattern
     @staticmethod
     def get_instance():
         if PresetManager.__instance is None:
@@ -16,16 +17,18 @@ class PresetManager:
             PresetManager.__instance.retrieve_presets()
         return PresetManager.__instance
 
-    # ################################################### singleton ####################################################
+    # ################################################### Singleton ####################################################
 
     def __init__(self):
         self.__presets = []
         self.__active_preset = None
 
+    # Clear the presets
     def clear(self):
         self.__presets.clear()
         self.__active_preset = None
 
+    # Add a preset
     def add_preset(self, preset_to_add):
         to_remove = None
         for preset in self.__presets:
@@ -41,16 +44,19 @@ class PresetManager:
         if preset_to_add not in self.__presets:
             self.__presets.append(preset_to_add)
 
+    # Remove a preset
     def remove_preset(self, preset_to_remove):
         if preset_to_remove is not None:
             self.__presets.remove(preset_to_remove)
 
+    # Setter of the active state of a preset
     def set_preset_active(self, active_preset):
         # Set all presets to inactive except the wanted one
         if active_preset is not None:
             for preset in self.__presets:
                 preset.set_active(preset is active_preset)
 
+    # Retrieve the existing presets in the scene
     def retrieve_presets(self):
         self.clear()
 
@@ -64,24 +70,19 @@ class PresetManager:
                     self.__active_preset = preset
                 self.__presets.append(preset)
 
+    # Save presets in the scene
     def save_presets(self):
         arr_json_presets = []
         for preset in self.__presets:
             arr_json_presets.append(preset.to_preset_array())
         fileInfo["presets"] = json.dumps(arr_json_presets)
 
-    def __str__(self):
-        string = "PresetManager("
-        if len(self.__presets) > 0: string += "\n"
-        for preset in self.__presets:
-            string += "\t" + str(preset) + "\n"
-        string += ")"
-        return string
-
+    # Getter of the presets
     def get_presets(self):
         self.__presets.sort(key=lambda x: x.get_name())
         return self.__presets
 
+    # Getter of whether a preset exist with a given name
     def has_preset_with_name(self, name):
         for preset in self.__presets:
             if preset.get_name() == name:

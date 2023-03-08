@@ -4,6 +4,7 @@ from FormSlider import *
 from pymel.core import *
 from functools import partial
 
+# Aspect Ratio datas
 _AspectRatios = {
     "1:1": {"ratio": 1.0, "HD": 1920, "SD": 720},
     "16:9": {"ratio": 1.77777777778, "HD": 1920, "SD": 1280},
@@ -40,7 +41,7 @@ class ImageSizePart(ControlRoomPart):
     def populate(self):
         content = QVBoxLayout()
         content.setContentsMargins(4, 4, 2, 0)
-
+        # Width and Height
         size_lyt = QHBoxLayout()
         lbl_width = QLabel("Width")
         size_lyt.addWidget(lbl_width)
@@ -54,6 +55,7 @@ class ImageSizePart(ControlRoomPart):
         self.__ui_height_edit.editingFinished.connect(self.__on_height_changed)
         size_lyt.addWidget(self.__ui_height_edit)
 
+        # Aspect Ratios
         ratios_lyt = QHBoxLayout()
         ratios_lyt.setContentsMargins(0, 4, 0, 0)
         for name in _AspectRatios.keys():
@@ -61,6 +63,7 @@ class ImageSizePart(ControlRoomPart):
             self.__ui_ratio_btns[name].clicked.connect(partial(self.__on_click_ratio_btn, name))
             ratios_lyt.addWidget(self.__ui_ratio_btns[name])
 
+        # SD and HD
         format_lyt = QHBoxLayout()
         format_lyt.setContentsMargins(0, 4, 0, 0)
         self.__ui_sd_format_btn = QPushButton("SD")
@@ -70,6 +73,7 @@ class ImageSizePart(ControlRoomPart):
         format_lyt.addWidget(self.__ui_sd_format_btn)
         format_lyt.addWidget(self.__ui_hd_format_btn)
 
+        # Overscan
         form_lyt = QFormLayout()
         lbl = QLabel("Overscan")
         lyt = QHBoxLayout()
@@ -90,6 +94,7 @@ class ImageSizePart(ControlRoomPart):
         lyt.addWidget(self.__ui_overscan_slider, 3)
         form_lyt.addRow(lbl, lyt)
 
+        # Gate
         camera_gate_lyt = QHBoxLayout()
         self.__ui_enable_gate_cb = QCheckBox("Enable Gate")
         self.__ui_enable_gate_cb.stateChanged.connect(self.__on_gate_enable_changed)
@@ -105,10 +110,12 @@ class ImageSizePart(ControlRoomPart):
         content.addLayout(camera_gate_lyt)
         return content
 
+    # On line edit Overscan changed
     def __on_overscan_changed(self):
         if self.__cam is not None:
             self.__cam.overscan.set(float(self.__ui_overscan_line_edit.text()))
 
+    # On slider Overscan changed
     def __on_slider_overscan_changed(self, value):
         if self.__cam is not None:
             value = value / 1000
@@ -116,33 +123,38 @@ class ImageSizePart(ControlRoomPart):
                 self.__ui_overscan_line_edit.setText(str(value))
                 self.__cam.overscan.set(value)
 
+    # On click on an aspect ratio button
     def __on_click_ratio_btn(self, ratio):
         if self.__ratio_selected == ratio:
             self.__ratio_selected = None
         else:
             self.__ratio_selected = ratio
             setAttr("defaultResolution.deviceAspectRatio", _AspectRatios[self.__ratio_selected]["ratio"])
-            self.__set_height()
+            self.__update_height()
             self.__retrieve_aspect_ratio()
         self.refresh_ui()
 
+    # On click on a format button (SD and HD)
     def __on_click_format_btn(self, format):
         width = _AspectRatios[self.__ratio_selected][format]
         setAttr("defaultResolution.width", width)
-        self.__set_height()
+        self.__update_height()
         self.__retrieve_aspect_ratio()
         self.refresh_ui()
 
-    def __set_height(self):
+    # Update the height
+    def __update_height(self):
         if self.__ratio_selected is not None:
             setAttr("defaultResolution.height",
                     getAttr("defaultResolution.width") / _AspectRatios[self.__ratio_selected]["ratio"])
 
-    def __set_width(self):
+    # Update the width
+    def __update_width(self):
         if self.__ratio_selected is not None:
             setAttr("defaultResolution.width",
                     getAttr("defaultResolution.height") * _AspectRatios[self.__ratio_selected]["ratio"])
 
+    # Retrieve the aspect ratio
     def __retrieve_aspect_ratio(self):
         self.__ratio_selected = None
         aspect_ratio = getAttr("defaultResolution.deviceAspectRatio")
@@ -151,14 +163,11 @@ class ImageSizePart(ControlRoomPart):
                 self.__ratio_selected = name
                 break
 
-    def set_gate_attr(self):
+    # Update the gate attributes
+    def __update_gate_attr(self):
         if self.__cam is not None:
             self.__cam.displayGateMaskOpacity.set(1.0 if self.__is_gate_opaque else 0.7)
             self.__cam.displayGateMaskColor.set((0, 0, 0) if self.__is_gate_opaque else (0.5, 0.5, 0.5))
-            self.__cam.displayResolution.set(self.__is_gate_enabled)
-
-    def set_gate_enable(self):
-        if self.__cam is not None:
             self.__cam.displayResolution.set(self.__is_gate_enabled)
 
     def refresh_ui(self):
@@ -185,22 +194,27 @@ class ImageSizePart(ControlRoomPart):
         self.__ui_enable_gate_cb.setChecked(self.__is_gate_enabled)
         self.__ui_opaque_gate_cb.setChecked(self.__is_gate_opaque)
 
-    def __on_gate_opacity_changed(self, state):
-        self.__is_gate_opaque = state == 2
-        self.set_gate_attr()
-
+    # On checkbox gate enable changed
     def __on_gate_enable_changed(self, state):
         self.__is_gate_enabled = state == 2
-        self.set_gate_enable()
+        self.__update_gate_attr()
 
+    # On checkbox gate opacity changed
+    def __on_gate_opacity_changed(self, state):
+        self.__is_gate_opaque = state == 2
+        self.__update_gate_attr()
+
+    # On line edit width changed
     def __on_width_changed(self):
         setAttr("defaultResolution.width", int(self.__ui_width_edit.text()))
-        self.__set_height()
+        self.__update_height()
 
+    # On line edit height changed
     def __on_height_changed(self):
         setAttr("defaultResolution.height", int(self.__ui_height_edit.text()))
-        self.__set_width()
+        self.__update_width()
 
+    # Callback that retrieve data and refresh UI
     def __callback(self):
         self.__retrieve_aspect_ratio()
         self.refresh_ui()
@@ -211,6 +225,7 @@ class ImageSizePart(ControlRoomPart):
         self.__aspect_ratio_callback = scriptJob(
             attributeChange=["defaultResolution.deviceAspectRatio", self.__callback])
 
+    # Add dynamic callback for the camera
     def add_dynamic_callbacks(self):
         if self.__cam is not None:
             self.__overscan_callback = scriptJob(
@@ -222,11 +237,13 @@ class ImageSizePart(ControlRoomPart):
         scriptJob(kill=self.__aspect_ratio_callback)
         self.remove_dynamic_callbacks()
 
+    # Remove dynamic callback for the camera
     def remove_dynamic_callbacks(self):
         if self.__overscan_callback is not None:
             scriptJob(kill=self.__overscan_callback)
             self.__overscan_callback = None
 
+    # retrieve the gate attributes
     def __retrieve_gate_attr(self):
         if self.__cam is not None:
             self.__is_gate_enabled = self.__cam.displayResolution.get()
@@ -251,8 +268,9 @@ class ImageSizePart(ControlRoomPart):
             self.__cam.overscan.set(preset.get(part_name, "overscan"))
             self.__is_gate_opaque = preset.get(part_name, "opacity_gate") == 1
             self.__is_gate_enabled = preset.get(part_name, "gate_enabled")
-            self.set_gate_attr()
+            self.__update_gate_attr()
 
+    # On cam changed retrieve datas and refresh callbacks and UI
     def cam_changed(self, cam):
         self.__cam = cam
         self.__retrieve_gate_attr()

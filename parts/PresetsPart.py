@@ -15,6 +15,7 @@ _PresetBaseName = "Preset"
 
 class PresetsPart(ControlRoomPart):
 
+    # Generate a new preset name according to existing ones
     @staticmethod
     def get_new_preset_name():
         base_name = _PresetBaseName
@@ -52,39 +53,42 @@ class PresetsPart(ControlRoomPart):
         icon_container_size = QtCore.QSize(24, 24)
 
         for preset in presets:
+            # Card
             widget_preset = QWidget()
             widget_preset.setStyleSheet(".QWidget{background:#383838; border-radius:4px}")
             lyt_preset = QVBoxLayout(widget_preset)
             lyt_preset.setSpacing(10)
+            # Label
             lbl_name_preset = QLabel(preset.get_name())
             lbl_name_preset.setStyleSheet("font-weight:bold")
             lyt_preset.addWidget(lbl_name_preset, alignment=Qt.AlignCenter)
+            # Actions
             lyt_actions = QHBoxLayout()
             lyt_actions.setSpacing(5)
             lyt_actions.setAlignment(Qt.AlignCenter)
             lyt_preset.addLayout(lyt_actions)
-
+            # Apply button
             apply_btn = QPushButton()
             apply_btn.setIconSize(QtCore.QSize(18, 18))
             apply_btn.setFixedSize(icon_container_size)
             apply_btn.setIcon(QIcon(QPixmap(os.path.join(self.__asset_path, "apply.png"))))
             apply_btn.clicked.connect(partial(self.__apply_preset, preset))
             lyt_actions.addWidget(apply_btn)
-
+            # Rename button
             rename_btn = QPushButton()
             rename_btn.setIconSize(icon_size)
             rename_btn.setFixedSize(icon_container_size)
             rename_btn.setIcon(QIcon(QPixmap(os.path.join(self.__asset_path, "rename.png"))))
             rename_btn.clicked.connect(partial(self.__rename_preset, preset))
             lyt_actions.addWidget(rename_btn)
-
+            # Save button
             save_btn = QPushButton()
             save_btn.setIconSize(icon_size)
             save_btn.setFixedSize(icon_container_size)
             save_btn.setIcon(QIcon(QPixmap(os.path.join(self.__asset_path, "save.png"))))
             save_btn.clicked.connect(partial(self.__save_to_preset, preset))
             lyt_actions.addWidget(save_btn)
-
+            # Delete btn
             delete_btn = QPushButton()
             delete_btn.setIconSize(icon_size)
             delete_btn.setFixedSize(icon_container_size)
@@ -95,6 +99,7 @@ class PresetsPart(ControlRoomPart):
             index += 1
 
         if index < 4:
+            # New Preset Button
             add_preset_btn = QPushButton("New Preset")
             if index == 0:
                 add_preset_btn.setStyleSheet("padding: 3px;margin-top:18px")
@@ -105,16 +110,19 @@ class PresetsPart(ControlRoomPart):
             index += 1
 
         if index < 4:
+            # Spacer
             self.__spacer = QSpacerItem(0, 0)
             self.__ui_presets_lyt.insertItem(index, self.__spacer)
             self.__ui_presets_lyt.setStretch(index, 4 - index)
         else:
             self.__spacer = None
 
+    # Generate a new preset
     def __generate_new_preset(self):
         self._control_room.generate_preset(PresetsPart.get_new_preset_name())
         self.refresh_ui()
 
+    # Delete the preset
     def __delete_preset(self, preset):
         answer_delete = confirmDialog(
             title='Confirm',
@@ -128,6 +136,7 @@ class PresetsPart(ControlRoomPart):
             preset_manager.save_presets()
             self.refresh_ui()
 
+    # Rename the preset
     def __rename_preset(self, preset):
         result = promptDialog(
             title='Rename Preset',
@@ -144,6 +153,7 @@ class PresetsPart(ControlRoomPart):
                 preset_manager.save_presets()
                 self.refresh_ui()
 
+    # Save to existing asset
     def __save_to_preset(self, preset):
         self._control_room.generate_preset(preset.get_name())
         self.refresh_ui()
@@ -152,12 +162,13 @@ class PresetsPart(ControlRoomPart):
         self._control_room.apply_preset(preset)
         self.refresh_ui()
 
-    def __callback(self, *args, **kwargs):
+    # Callback when a Scene is opened
+    def __callback_scene_opened(self):
         PresetManager.get_instance().retrieve_presets()
         self.refresh_ui()
 
     def add_callbacks(self):
-        self.__maya_callback = scriptJob(event=["SceneOpened", self.__callback])
+        self.__maya_callback = scriptJob(event=["SceneOpened", self.__callback_scene_opened])
 
     def remove_callbacks(self):
         scriptJob(kill=self.__maya_callback)
