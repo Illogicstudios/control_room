@@ -44,7 +44,7 @@ if __name__ == '__main__':
   <span>
     <img src="https://user-images.githubusercontent.com/94440879/223731507-1073de6c-101f-4b3b-bde2-b7550f2c0b4b.png" width=80%>
   </span>
-  <p weight="bold">Some Arnold settings can be disabled here</p>
+  <p weight="bold">Some settings can be disabled here</p>
   <br/>
 </div>
 
