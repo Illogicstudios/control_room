@@ -118,3 +118,18 @@ Once a new presets is created, 4 actions are possible :
 - Rename the preset
 - Save the current settings to this preset
 - Delete this preset
+
+
+### Overrides
+
+<div align="center">
+  <span>
+    <img src="https://user-images.githubusercontent.com/94440879/223737349-5bed5525-4a11-4652-996f-ed79b7be3077.png" width=100%>
+  </span>
+  <p weight="Overrides can be created or removed from the Control Room"></p>
+  <br/>
+</div>
+
+If a render layer is found in the scene, overrides can be created for some settings. 
+To create or remove an override right-click on the field in the UI. If an override exists the fields will be 
+displayed in orange
