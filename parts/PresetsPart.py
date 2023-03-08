@@ -15,18 +15,6 @@ _PresetBaseName = "Preset"
 
 class PresetsPart(ControlRoomPart):
 
-    # Generate a new preset name according to existing ones
-    @staticmethod
-    def get_new_preset_name():
-        base_name = _PresetBaseName
-        num = 1
-        name = base_name + str(num)
-        preset_manager = PresetManager.get_instance()
-        while preset_manager.has_preset_with_name(name):
-            num += 1
-            name = base_name + str(num)
-        return name
-
     def __init__(self, control_room, asset_path):
         super(PresetsPart, self).__init__(control_room, "Presets")
         self.__ui_presets_lyt = None
@@ -119,8 +107,24 @@ class PresetsPart(ControlRoomPart):
 
     # Generate a new preset
     def __generate_new_preset(self):
-        self._control_room.generate_preset(PresetsPart.get_new_preset_name())
-        self.refresh_ui()
+        result = promptDialog(
+            title='New Preset',
+            message='Enter the name:',
+            button=['OK', 'Cancel'],
+            defaultButton='OK',
+            cancelButton='Cancel',
+            dismissString='Cancel')
+        if result == 'OK':
+            preset_manager = PresetManager.get_instance()
+            name = promptDialog(query=True, text=True)
+            if not re.match(r"^\w+$", name):
+                print_warning(["\""+name+"\" is a bad preset name", "The preset has not been created"])
+                return
+            if preset_manager.has_preset_with_name(name):
+                print_warning(["Preset \""+name+"\" already exists", "The preset has not been created"])
+                return
+            self._control_room.generate_preset(name)
+            self.refresh_ui()
 
     # Delete the preset
     def __delete_preset(self, preset):
@@ -146,12 +150,17 @@ class PresetsPart(ControlRoomPart):
             cancelButton='Cancel',
             dismissString='Cancel')
         if result == 'OK':
+            preset_manager = PresetManager.get_instance()
             new_name = promptDialog(query=True, text=True)
-            if re.match(r"^\w+$", new_name):
-                preset_manager = PresetManager.get_instance()
-                preset.set_name(promptDialog(query=True, text=True))
-                preset_manager.save_presets()
-                self.refresh_ui()
+            if not re.match(r"^\w+$", new_name):
+                print_warning(["\""+new_name+"\" is a bad preset name", "The preset has not been renamed"])
+                return
+            if preset.get_name() != new_name and preset_manager.has_preset_with_name(new_name):
+                print_warning(["Preset \""+new_name+"\" already exists", "The preset has not been renamed"])
+                return
+            preset.set_name(new_name)
+            preset_manager.save_presets()
+            self.refresh_ui()
 
     # Save to existing asset
     def __save_to_preset(self, preset):
