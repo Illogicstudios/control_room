@@ -68,7 +68,7 @@ class ControlRoom(QDialog):
     def retrieve_override(obj_name, attr_name):
         visible_layer = render_setup.instance().getVisibleRenderLayer()
         for override in render_setup_utils.getOverridesRecursive(visible_layer):
-            if obj_name == override.targetNodeName() and attr_name == override.attributeName():
+            if override.typeName() == "absUniqueOverride" and obj_name == override.targetNodeName() and attr_name == override.attributeName():
                 return override
         return None
 
