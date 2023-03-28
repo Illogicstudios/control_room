@@ -12,7 +12,6 @@ if __name__ == '__main__':
         "Preset",
         "PresetManager",
         "FormSlider",
-        "parts.CameraPart",
         "parts.FeatureOverridesPart",
         "parts.DepthOfFieldPart",
         "parts.MotionBlurPart",

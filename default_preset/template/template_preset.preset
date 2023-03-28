@@ -1,0 +1,21 @@
+{
+    "name": "preset",
+    "part_name_1": {
+        "field_1": true,
+        "field_2": false,
+        "field_3": false
+    },
+    "part_name_2": {
+        "field_1": true,
+        "field_2": true,
+        "field_3": false
+    },
+    "part_name_3": {
+        "field_1": false,
+    },
+    "part_name_4": {
+        "field_1": true,
+        "field_2": true,
+        "field_3": true
+    }
+}
