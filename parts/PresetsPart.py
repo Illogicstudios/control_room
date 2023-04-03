@@ -36,8 +36,11 @@ class PresetFilterDialog(QDialog):
         # Makes the object get deleted from memory, not just hidden, when it is closed.
         self.setAttribute(QtCore.Qt.WA_DeleteOnClose)
 
+        self.__create_ui()
+        self.__refresh_ui()
+
     # Create the ui
-    def populate(self):
+    def __create_ui(self):
         # Reinit attributes of the UI
         self.setMinimumSize(self.__ui_min_width, self.__ui_min_height)
         self.resize(self.__ui_width, self.__ui_height)
@@ -65,7 +68,7 @@ class PresetFilterDialog(QDialog):
         main_lyt.addWidget(self.__ui_submit_btn)
 
     # Refresh the ui according to the model attribute
-    def refresh_ui(self):
+    def __refresh_ui(self):
         try:
             self.__ui_list_fields.clear()
             first = True
