@@ -104,7 +104,7 @@ class PresetFilterDialog(QDialog):
             pass
 
     def __refresh_btn(self):
-        self.__ui_submit_btn.setEnabled(len(self.__fields_selected)>0)
+        self.__ui_submit_btn.setEnabled(len(self.__fields_selected) > 0)
 
     def __on_selection_field_changed(self):
         self.__fields_selected.clear()
@@ -116,11 +116,13 @@ class PresetFilterDialog(QDialog):
         self.__preset.filter(self.__fields_selected)
         self.accept()
 
+
 class EventFilterPreset(QObject):
     def __init__(self, control_room, preset):
         super().__init__()
         self.__control_room = control_room
         self.__preset = preset
+
     def eventFilter(self, object, event):
         if event.type() == QtCore.QEvent.Enter:
             self.__control_room.set_hovered_preset(self.__preset)
@@ -129,6 +131,7 @@ class EventFilterPreset(QObject):
             self.__control_room.set_hovered_preset(None)
             return True
         return False
+
 
 class PresetsPart(ControlRoomPart):
 
