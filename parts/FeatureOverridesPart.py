@@ -104,7 +104,7 @@ class FeatureOverridesPart(ControlRoomPart):
             IgnoreFields(self._control_room, "Ignore Depth of field", part_name,
                          "defaultArnoldRenderOptions.ignoreDof", "ignore_dof")
         ]
-        self.__ignore_aovs = getAttr("defaultArnoldRenderOptions.aovMode") == 2
+        self.__ignore_aovs = False
 
         self.__ui_ignore_aovs_cb = None
         self.__ui_output_denoising_aovs_cb = None
@@ -126,6 +126,8 @@ class FeatureOverridesPart(ControlRoomPart):
 
         # Ignore AOVs
         self.__ui_ignore_aovs_cb = QCheckBox("AOVs Batch Only")
+        self.__ignore_aovs = getAttr("defaultArnoldRenderOptions.aovMode") == 2
+        self.__ui_ignore_aovs_cb.setChecked(self.__ignore_aovs)
         self.__ui_ignore_aovs_cb.stateChanged.connect(self.__on_state_changed_ignore_aovs)
         self.__ui_ignore_aovs_cb.setChecked(self.__ignore_aovs)
         right_content.addWidget(self.__ui_ignore_aovs_cb)
