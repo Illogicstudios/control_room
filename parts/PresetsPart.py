@@ -4,7 +4,7 @@ import re
 from functools import partial
 
 import maya.OpenMaya as OpenMaya
-from pymel.core import *
+import pymel.core as pm
 
 from ControlRoomPart import *
 from FormSlider import *
@@ -230,7 +230,7 @@ class PresetsPart(ControlRoomPart):
 
     # Generate a new preset
     def __generate_new_preset(self):
-        result = promptDialog(
+        result = pm.promptDialog(
             title='New Preset',
             message='Enter the name:',
             button=['OK', 'Cancel'],
@@ -239,7 +239,7 @@ class PresetsPart(ControlRoomPart):
             dismissString='Cancel')
         if result == 'OK':
             preset_manager = PresetManager.get_instance()
-            name = promptDialog(query=True, text=True)
+            name = pm.promptDialog(query=True, text=True)
             if not re.match(r"^\w+$", name):
                 print_warning(["\"" + name + "\" is a bad preset name", "The preset has not been created"])
                 return
@@ -251,7 +251,7 @@ class PresetsPart(ControlRoomPart):
 
     # Delete the preset
     def __delete_preset(self, preset):
-        answer_delete = confirmDialog(
+        answer_delete = pm.confirmDialog(
             title='Confirm',
             message="Are you sure to delete the preset " + preset.get_name() + " ?",
             button=['Yes', 'No'],
@@ -273,10 +273,10 @@ class PresetsPart(ControlRoomPart):
         self.refresh_ui()
 
     def add_callbacks(self):
-        self.__maya_callback = scriptJob(event=["SceneOpened", self.__callback_scene_opened])
+        self.__maya_callback = pm.scriptJob(event=["SceneOpened", self.__callback_scene_opened])
 
     def remove_callbacks(self):
-        scriptJob(kill=self.__maya_callback)
+        pm.scriptJob(kill=self.__maya_callback)
 
     def add_to_preset(self, preset):
         # Nothing
